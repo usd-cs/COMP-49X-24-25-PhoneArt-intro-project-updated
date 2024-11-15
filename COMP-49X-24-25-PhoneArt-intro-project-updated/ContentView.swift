@@ -9,78 +9,87 @@ import SwiftUI
 import CoreData
 
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
-
+    // State variables. Will be more useful when implementing login logic.
+    @State private var email = ""
+    @State private var password = ""
+    
+    // Login Page for the application. 
     var body: some View {
         NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
-                    }
-                }
-                .onDelete(perform: deleteItems)
+            VStack(spacing: 20) {
+                Spacer()
+                    .frame(height: 175)
+                
+                welcomeHeader()
+                emailField()
+                passwordField()
+                signInButton()
+                
+                Spacer()
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-            Text("Select an item")
+            .navigationBarHidden(true)
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
+    // The action function for the sign in button.
+    private func handleLogin() {
+        // Login logic will be implemented later
     }
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
+    // The welcome header for the login page.
+    private func welcomeHeader() -> some View {
+        Text("Welcome!")
+            .bold()
+            .font(.title)
     }
+    
+    // The email field for the login page.
+    private func emailField() -> some View {
+        TextField("Email", text: $email)
+            .textFieldStyle(.plain)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 4)
+            )
+            .padding(.horizontal, 40)
+            .autocapitalization(.none)
+    }
+    
+    // The password field for the login page.
+    private func passwordField() -> some View {
+        SecureField("Password", text: $password)
+            .textFieldStyle(.plain)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 4)
+            )
+            .padding(.horizontal, 40)
+            .autocapitalization(.none)
+    }
+    
+    // The sign in button for the login page.
+    private func signInButton() -> some View {
+        Button(action: handleLogin) {
+            Text("Sign In")
+                .bold()
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color(red: 0.0, green: 0.5, blue: 1.0))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color(red: 0.0, green: 0.4, blue: 0.8), lineWidth: 8)
+                )
+                .cornerRadius(20)
+        }
+        .padding(.horizontal, 40)
+       
+    }
+    
 }
 
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
-
 #Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    ContentView()
 }
