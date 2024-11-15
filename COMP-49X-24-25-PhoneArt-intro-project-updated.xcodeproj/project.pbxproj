@@ -30,6 +30,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		3B6480352CE748D70070EA10 /* .github */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = .github;
+			sourceTree = "<group>";
+		};
 		3B7C40D32CE6EEB3004077CB /* COMP-49X-24-25-PhoneArt-intro-project-updated */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "COMP-49X-24-25-PhoneArt-intro-project-updated";
@@ -75,6 +80,7 @@
 		3B7C40C82CE6EEB3004077CB = {
 			isa = PBXGroup;
 			children = (
+				3B6480352CE748D70070EA10 /* .github */,
 				3B7C40D32CE6EEB3004077CB /* COMP-49X-24-25-PhoneArt-intro-project-updated */,
 				3B7C40E92CE6EEB4004077CB /* COMP-49X-24-25-PhoneArt-intro-project-updatedTests */,
 				3B7C40F32CE6EEB4004077CB /* COMP-49X-24-25-PhoneArt-intro-project-updatedUITests */,
@@ -108,6 +114,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				3B6480352CE748D70070EA10 /* .github */,
 				3B7C40D32CE6EEB3004077CB /* COMP-49X-24-25-PhoneArt-intro-project-updated */,
 			);
 			name = "COMP-49X-24-25-PhoneArt-intro-project-updated";
