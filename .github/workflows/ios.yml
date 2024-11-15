@@ -20,4 +20,4 @@ jobs:
       run: sudo xcode-select -s /Applications/Xcode_16.1.app
       
     - name: Build and Test
-      run: ./run-tests.sh
+      run: ./run_tests.sh
