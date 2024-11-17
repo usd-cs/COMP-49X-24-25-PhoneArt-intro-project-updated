@@ -10,12 +10,7 @@ import XCTest
 final class COMP_49X_24_25_PhoneArt_intro_project_updatedUITests: XCTestCase {
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
     }
 
     override func tearDownWithError() throws {
@@ -23,21 +18,43 @@ final class COMP_49X_24_25_PhoneArt_intro_project_updatedUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testLoginPageUIElements() throws {
         let app = XCUIApplication()
         app.launch()
-
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        
+        // Test welcome header exists
+        XCTAssertTrue(app.staticTexts["Welcome!"].exists)
+        
+        // Test email field exists and is interactive
+        let emailField = app.textFields["Email"]
+        XCTAssertTrue(emailField.exists)
+        emailField.tap()
+        emailField.typeText("test@example.com")
+        
+        // Test password field exists and is interactive
+        let passwordField = app.secureTextFields["Password"]
+        XCTAssertTrue(passwordField.exists)
+        passwordField.tap()
+        passwordField.typeText("password123")
+        
+        // Test sign in buttons exist and are tappable
+        let signInButton = app.buttons["Sign In"]
+        XCTAssertTrue(signInButton.exists)
+        signInButton.tap()
+        
+        let guestSignInButton = app.buttons["Sign in as Guest"]
+        XCTAssertTrue(guestSignInButton.exists)
+        guestSignInButton.tap()
     }
+    
+    
 
-    @MainActor
-    func testLaunchPerformance() throws {
-        if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {
-            // This measures how long it takes to launch your application.
-            measure(metrics: [XCTApplicationLaunchMetric()]) {
-                XCUIApplication().launch()
-            }
-        }
-    }
+    // @MainActor
+    // func testLaunchPerformance() throws {
+    //     if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {
+    //         measure(metrics: [XCTApplicationLaunchMetric()]) {
+    //             XCUIApplication().launch()
+    //         }
+    //     }
+    // }
 }
