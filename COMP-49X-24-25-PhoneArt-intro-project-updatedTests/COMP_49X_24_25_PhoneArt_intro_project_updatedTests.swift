@@ -34,3 +34,62 @@ final class COMP_49X_24_25_PhoneArt_intro_project_updatedTests: XCTestCase {
     }
 
 }
+
+class LoginBackendTests: XCTestCase {
+    var userViewModel: UserViewModel!
+    
+    override func setUp() {
+        super.setUp()
+        userViewModel = UserViewModel()
+    }
+    
+    override func tearDown() {
+        userViewModel = nil
+        super.tearDown()
+    }
+    
+    func testSuccessfulSignIn() async throws {
+        // valid credential test
+        do {
+            try await userViewModel.signIn(email: "test@example.com", password: "password123")
+            XCTAssertNotNil(userViewModel.currentUser, "Current user should not be nil after successful sign in")
+            XCTAssertEqual(userViewModel.currentUser?.email, "test@example.com")
+        } catch {
+            XCTFail("Sign in should succeed with valid credentials: \(error.localizedDescription)")
+        }
+    }
+    
+    func testInvalidCredentialsSignIn() async throws {
+        
+        do {
+            try await userViewModel.signIn(email: "invalid@example.com", password: "wrongpassword")
+            XCTFail("Sign in should fail with invalid credentials")
+        } catch {
+            XCTAssertNil(userViewModel.currentUser, "Current user should be nil after failed sign in")
+        }
+    }
+    
+    func testCreateUserAndSignIn() async throws {
+        let testEmail = "newuser@example.com"
+        let testPassword = "newpassword123"
+        let testName = "Test User"
+        
+        //tesing user creation
+        do {
+            try await userViewModel.createUser(email: testEmail, 
+                                             password: testPassword, 
+                                             name: testName, 
+                                             isAdmin: false)
+            
+            //tests the sign in for users
+            try await userViewModel.signIn(email: testEmail, password: testPassword)
+            
+            XCTAssertNotNil(userViewModel.currentUser)
+            XCTAssertEqual(userViewModel.currentUser?.email, testEmail)
+            XCTAssertEqual(userViewModel.currentUser?.name, testName)
+            XCTAssertFalse(userViewModel.currentUser?.isAdmin ?? true)
+        } catch {
+            XCTFail("User creation and sign in should succeed: \(error.localizedDescription)")
+        }
+    }
+}
