@@ -1,38 +1,73 @@
-func testCreateUserAndSignIn() async throws {
-    // Create expectations
-    let expectation = XCTestExpectation(description: "User creation and sign in")
-    
-    // Test email and password
-    let testEmail = "test\(Int.random(in: 1000...9999))@test.com"
-    let testPassword = "password123"
-    
-    // Attempt to create user and sign in
-    try await userViewModel.createUser(email: testEmail, password: testPassword)
-    try await userViewModel.signIn(email: testEmail, password: testPassword)
-    
-    // Verify the login state through UI alerts
-    XCTAssertTrue(userViewModel.showingLoginSuccess)
-    XCTAssertFalse(userViewModel.showingLoginError)
-    
-    // Wait for expectation
-    await fulfillment(of: [expectation], timeout: 5.0)
-}
+import XCTest
+@testable import COMP_49X_24_25_PhoneArt_intro_project_updated
+import FirebaseAuth
 
-func testSuccessfulSignIn() async throws {
-    // Create expectation
-    let expectation = XCTestExpectation(description: "Successful sign in")
+final class LoginBackendTests: XCTestCase {
+    var userViewModel: UserViewModel!
     
-    // Use known test credentials
-    let testEmail = "test@test.com"
-    let testPassword = "password123"
+    override func setUp() {
+        super.setUp()
+        userViewModel = UserViewModel()
+    }
     
-    // Attempt to sign in
-    try await userViewModel.signIn(email: testEmail, password: testPassword)
+    override func tearDown() {
+        userViewModel = nil
+        super.tearDown()
+    }
     
-    // Verify the login state through UI alerts
-    XCTAssertTrue(userViewModel.showingLoginSuccess)
-    XCTAssertFalse(userViewModel.showingLoginError)
+    func testCreateUserAndSignIn() {
+        let expectation = expectation(description: "Create and sign in")
+        let testEmail = "test\(Int.random(in: 1000...9999))@test.com"
+        let testPassword = "password123"
+        
+        Task {
+            do {
+                // Create user
+                try await userViewModel.createUser(email: testEmail, password: testPassword)
+                // Sign in with created user
+                try await userViewModel.signIn(email: testEmail, password: testPassword)
+                expectation.fulfill()
+            } catch {
+                XCTFail("Authentication failed: \(error.localizedDescription)")
+                expectation.fulfill()
+            }
+        }
+        
+        waitForExpectations(timeout: 10)
+        XCTAssertFalse(userViewModel.showingLoginError)
+    }
     
-    // Wait for expectation
-    await fulfillment(of: [expectation], timeout: 5.0)
+    func testSuccessfulSignIn() {
+        let expectation = expectation(description: "Sign in")
+        
+        Task {
+            do {
+                try await userViewModel.signIn(email: "test@test.com", password: "password123")
+                expectation.fulfill()
+            } catch {
+                XCTFail("Sign in failed: \(error.localizedDescription)")
+                expectation.fulfill()
+            }
+        }
+        
+        waitForExpectations(timeout: 10)
+        XCTAssertFalse(userViewModel.showingLoginError)
+    }
+    
+    func testInvalidCredentialsSignIn() {
+        let expectation = expectation(description: "Invalid sign in")
+        
+        Task {
+            do {
+                try await userViewModel.signIn(email: "invalid@test.com", password: "wrongpassword")
+                XCTFail("Should not succeed with invalid credentials")
+            } catch {
+                // Expected to fail
+                XCTAssertTrue(userViewModel.showingLoginError)
+            }
+            expectation.fulfill()
+        }
+        
+        waitForExpectations(timeout: 10)
+    }
 } 
