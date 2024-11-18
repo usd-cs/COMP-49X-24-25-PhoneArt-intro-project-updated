@@ -1,9 +1,10 @@
-​​import XCTest
+import XCTest
 @testable import COMP_49X_24_25_PhoneArt_intro_project_updated
 import FirebaseAuth
 import FirebaseCore
 import FirebaseFirestore
-final class COMP_49X_24_25_PhoneArt_intro_project_updatedTests: XCTestCase {
+
+class COMP_49X_24_25_PhoneArt_intro_project_updatedTests: XCTestCase {
     var userViewModel: UserViewModel!
     
     override func setUp() {
@@ -13,24 +14,27 @@ final class COMP_49X_24_25_PhoneArt_intro_project_updatedTests: XCTestCase {
         }
         userViewModel = UserViewModel()
     }
+    
     override func tearDown() {
         userViewModel = nil
         super.tearDown()
     }
+    
     func testExample() {
         XCTAssertTrue(true)
     }
+    
     func testPerformanceExample() {
         measure {
             XCTAssertTrue(true)
         }
     }
-    // testing for UserViewModel initialization
+    
     func testUserViewModelInitialization() {
         XCTAssertNotNil(userViewModel)
         XCTAssertNil(userViewModel.currentUser)
     }
-    // testing for a successful sign on with valid admin creds
+    
     func testSuccessfulSignIn() {
         let expectation = expectation(description: "Successful Sign In")
         
@@ -47,7 +51,6 @@ final class COMP_49X_24_25_PhoneArt_intro_project_updatedTests: XCTestCase {
         waitForExpectations(timeout: 5)
     }
     
-    // testing an unsuccessful sign on with random invalid credentials
     func testUnsuccessfulSignIn() {
         let expectation = expectation(description: "Unsuccessful Sign In")
         
