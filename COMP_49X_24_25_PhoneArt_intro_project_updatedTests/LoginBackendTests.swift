@@ -9,10 +9,6 @@ final class LoginBackendTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        // Configure Firebase if not already configured
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-        }
         userViewModel = UserViewModel()
     }
     
@@ -21,40 +17,102 @@ final class LoginBackendTests: XCTestCase {
         super.tearDown()
     }
     
-    func testUserModelCreation() {
-        // Test User struct creation
+    // MARK: - Model Tests
+    
+    func testUserModelProperties() {
         let testUser = User(
             email: "test@example.com",
             name: "Test User",
             isAdmin: false,
-            uid: "test123"
+            uid: "test-uid-123"
         )
         
-        XCTAssertEqual(testUser.email, "test@example.com")
-        XCTAssertEqual(testUser.name, "Test User")
-        XCTAssertEqual(testUser.uid, "test123")
-        XCTAssertFalse(testUser.isAdmin)
+        XCTAssertEqual(testUser.email, "test@example.com", "Email should match")
+        XCTAssertEqual(testUser.name, "Test User", "Name should match")
+        XCTAssertFalse(testUser.isAdmin, "Should not be admin")
+        XCTAssertEqual(testUser.uid, "test-uid-123", "UID should match")
     }
     
-    func testUserViewModelInitialization() {
-        XCTAssertNotNil(userViewModel)
-        XCTAssertNil(userViewModel.currentUser)
+    func testUserModelCoding() {
+        let testUser = User(
+            email: "test@example.com",
+            name: "Test User",
+            isAdmin: true,
+            uid: "test-uid-123"
+        )
+        
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(testUser)
+            
+            let decoder = JSONDecoder()
+            let decodedUser = try decoder.decode(User.self, from: data)
+            
+            XCTAssertEqual(decodedUser.email, testUser.email)
+            XCTAssertEqual(decodedUser.name, testUser.name)
+            XCTAssertEqual(decodedUser.isAdmin, testUser.isAdmin)
+            XCTAssertEqual(decodedUser.uid, testUser.uid)
+        } catch {
+            XCTFail("Coding failed: \(error)")
+        }
     }
     
-    func testInvalidSignIn() {
-        let expectation = expectation(description: "Invalid sign in")
+    // MARK: - ViewModel Tests
+    
+    func testViewModelInitialization() {
+        XCTAssertNotNil(userViewModel, "ViewModel should be initialized")
+        XCTAssertNil(userViewModel.currentUser, "Current user should be nil initially")
+    }
+    
+    func testSignInValidation() {
+        let expectation = XCTestExpectation(description: "Sign in validation")
         
         Task {
             do {
-                try await userViewModel.signIn(email: "nonexistent@test.com", password: "wrongpassword")
-                XCTFail("Sign in should fail with invalid credentials")
+                try await userViewModel.signIn(email: "", password: "")
+                XCTFail("Should fail with empty credentials")
             } catch {
-                // Expected to fail
                 XCTAssertNil(userViewModel.currentUser)
+                expectation.fulfill()
             }
-            expectation.fulfill()
         }
         
-        waitForExpectations(timeout: 5)
+        wait(for: [expectation], timeout: 2.0)
+    }
+    
+    func testInvalidEmailFormat() {
+        let expectation = XCTestExpectation(description: "Invalid email format")
+        
+        Task {
+            do {
+                try await userViewModel.signIn(email: "notanemail", password: "password123")
+                XCTFail("Should fail with invalid email format")
+            } catch {
+                XCTAssertNil(userViewModel.currentUser)
+                expectation.fulfill()
+            }
+        }
+        
+        wait(for: [expectation], timeout: 2.0)
+    }
+    
+    func testShortPassword() {
+        let expectation = XCTestExpectation(description: "Short password")
+        
+        Task {
+            do {
+                try await userViewModel.createUser(
+                    email: "test@example.com",
+                    password: "123", // Too short
+                    name: "Test",
+                    isAdmin: false
+                )
+                XCTFail("Should fail with short password")
+            } catch {
+                expectation.fulfill()
+            }
+        }
+        
+        wait(for: [expectation], timeout: 2.0)
     }
 } 
