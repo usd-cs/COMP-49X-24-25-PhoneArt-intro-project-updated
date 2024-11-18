@@ -114,6 +114,10 @@ struct ContentView: View {
           Text("You have successfully logged in!")
       }
   }
+
+  init(userViewModel: UserViewModel = UserViewModel()) {
+      _userViewModel = StateObject(wrappedValue: userViewModel)
+  }
 }
 
 
