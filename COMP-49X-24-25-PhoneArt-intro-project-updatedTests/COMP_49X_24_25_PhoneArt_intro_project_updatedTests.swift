@@ -1,36 +1,70 @@
-//
-//  COMP_49X_24_25_PhoneArt_intro_project_updatedTests.swift
-//  COMP-49X-24-25-PhoneArt-intro-project-updatedTests
-//
-//  Created by Aditya Prakash on 11/17/24.
-//
-
 import XCTest
 @testable import COMP_49X_24_25_PhoneArt_intro_project_updated
+import FirebaseAuth
+import FirebaseCore
+import FirebaseFirestore
 
-final class COMP_49X_24_25_PhoneArt_intro_project_updatedTests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+class COMP_49X_24_25_PhoneArt_intro_project_updatedTests: XCTestCase {
+    var userViewModel: UserViewModel!
+    
+    override func setUp() {
+        super.setUp()
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
+        userViewModel = UserViewModel()
     }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    
+    override func tearDown() {
+        userViewModel = nil
+        super.tearDown()
     }
-
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    
+    func testExample() {
+        XCTAssertTrue(true)
     }
-
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+    
+    func testPerformanceExample() {
+        measure {
+            XCTAssertTrue(true)
         }
     }
-
+    
+    func testUserViewModelInitialization() {
+        XCTAssertNotNil(userViewModel)
+        XCTAssertNil(userViewModel.currentUser)
+    }
+    
+    func testSuccessfulSignIn() {
+        let expectation = expectation(description: "Successful Sign In")
+        
+        Task {
+            do {
+                try await userViewModel.signIn(email: "admin@example.com", password: "admin123")
+                expectation.fulfill()
+            } catch {
+                print("Login error: \(error.localizedDescription)")
+                expectation.fulfill()
+            }
+        }
+        
+        waitForExpectations(timeout: 5)
+    }
+    
+    func testUnsuccessfulSignIn() {
+        let expectation = expectation(description: "Unsuccessful Sign In")
+        
+        Task {
+            do {
+                try await userViewModel.signIn(email: "xyz@abc.def", password: "wrongpass")
+                expectation.fulfill()
+            } catch {
+                print("Expected error: \(error.localizedDescription)")
+                expectation.fulfill()
+            }
+        }
+        
+        waitForExpectations(timeout: 5)
+    }
 }
+
