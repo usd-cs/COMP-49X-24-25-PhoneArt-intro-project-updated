@@ -47,6 +47,38 @@ final class COMP_49X_24_25_PhoneArt_intro_project_updatedUITests: XCTestCase {
         guestSignInButton.tap()
     }
     
+    @MainActor
+       func testPostViewUIElements() throws {
+           let app = XCUIApplication()
+           app.launch()
+          
+           // Sign in as guest to access PostView
+           app.buttons["Sign in as Guest"].tap()
+          
+           // Test discussions title exists
+           XCTAssertTrue(app.staticTexts["Discussions"].exists)
+          
+           // Test post creation field exists and is interactive
+           let postField = app.textFields["Share your thoughts here..."]
+           XCTAssertTrue(postField.exists)
+           postField.tap()
+           postField.typeText("Test post content")
+          
+           // Test post button exists and is tappable
+           let postButton = app.buttons["Post"]
+           XCTAssertTrue(postButton.exists)
+           postButton.tap()
+          
+           // Test sign out button exists and is tappable
+           let signOutButton = app.buttons["Sign Out"]
+           XCTAssertTrue(signOutButton.exists)
+           signOutButton.tap()
+          
+           // Verify we're back at login screen
+           XCTAssertTrue(app.staticTexts["Welcome!"].exists)
+       }
+
+    
     
 
     // @MainActor

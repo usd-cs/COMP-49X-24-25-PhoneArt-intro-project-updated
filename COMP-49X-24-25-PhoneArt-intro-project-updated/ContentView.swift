@@ -16,6 +16,7 @@ struct ContentView: View {
   @State private var password = ""
   @State private var showingLoginError = false
   @State private var showingLoginSuccess = false
+  @State private var isAuthenticated = false
    // Login Page for the application.
   var body: some View {
       NavigationView {
@@ -31,6 +32,10 @@ struct ContentView: View {
               Spacer()
           }
           .navigationBarHidden(true)
+          .fullScreenCover(isPresented: $isAuthenticated) {
+                       PostView(isAuthenticated: $isAuthenticated)
+                           .navigationViewStyle(StackNavigationViewStyle())
+         }
       }
   }
 
@@ -73,6 +78,8 @@ struct ContentView: View {
                   do {
                       try await userViewModel.signIn(email: email, password: password)
                       showingLoginSuccess = true
+                      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                          isAuthenticated = true
                       // Handle successful login (e.g., navigate to main app view)
                   } catch {
                       showingLoginError = true
@@ -94,7 +101,8 @@ struct ContentView: View {
           }
         
           Button(action: {
-              // Guest login functionality will be implemented here
+              isAuthenticated = true
+              // Enable guest login by directly setting authenticated to true
           }) {
               Text("Sign in as Guest")
                   .foregroundColor(Color(red: 0.0, green: 0.5, blue: 1.0))
