@@ -5,11 +5,7 @@
 //  Created by Aditya Prakash on 11/17/24.
 //
 
-
-
-
 import SwiftUI
-
 
 // ContentView is the main view of the application. It will include the login page.
 struct ContentView: View {
@@ -19,6 +15,7 @@ struct ContentView: View {
  @State private var showingLoginError = false
  @State private var showingLoginSuccess = false
  @State private var isAuthenticated = false
+ 
   // Login Page for the application.
  var body: some View {
      NavigationView {
@@ -37,12 +34,10 @@ struct ContentView: View {
          .fullScreenCover(isPresented: $isAuthenticated) {
              PostView(isAuthenticated: $isAuthenticated)
                  .navigationViewStyle(StackNavigationViewStyle())
+                 .environmentObject(userViewModel)
          }
      }
  }
-
-
-
 
  // The welcome header for the login page.
  private func welcomeHeader() -> some View {

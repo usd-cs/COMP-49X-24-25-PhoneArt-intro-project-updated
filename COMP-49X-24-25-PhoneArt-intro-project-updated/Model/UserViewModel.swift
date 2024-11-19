@@ -15,6 +15,7 @@ struct User: Codable {
 class UserViewModel: ObservableObject {
    @Published var currentUser: User?
    private let db = Firestore.firestore()
+   private var userNameCache: [String: String] = [:]
   
    func createUser(email: String, password: String, name: String, isAdmin: Bool) async throws {
        do {
@@ -72,6 +73,34 @@ class UserViewModel: ObservableObject {
        } catch {
            print("Error fetching user: \(error.localizedDescription)")
            throw error
+       }
+   }
+  
+   func getUserName(userId: String) async -> String? {
+       // Validate userId
+       guard !userId.isEmpty else { return nil }
+       
+       // Check cache first
+       if let cachedName = userNameCache[userId], !cachedName.isEmpty {
+           return cachedName
+       }
+       
+       do {
+           let documentSnapshot = try await db.collection("users").document(userId).getDocument()
+           guard let data = documentSnapshot.data(),
+                 let name = data["name"] as? String,
+                 !name.isEmpty else {
+               return nil
+           }
+           
+           // Store in cache
+           DispatchQueue.main.async {
+               self.userNameCache[userId] = name
+           }
+           return name
+       } catch {
+           print("Error fetching user name: \(error)")
+           return nil
        }
    }
 }
