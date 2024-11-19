@@ -14,16 +14,30 @@ struct CommentView: View {
    @State private var newComment = ""
    @State private var posterName = "Loading..."
    @EnvironmentObject var userViewModel: UserViewModel
+   @StateObject private var commentViewModel = CommentViewModel()
+   @State private var refreshID = UUID()
   
    // main view layout
    var body: some View {
        VStack(alignment: .leading, spacing: 16) {
            backButton()
            postDisplayView()
+           commentsList()
            Spacer()
        }
        .padding()
        .navigationBarHidden(true)
+       .id(refreshID)
+       .onAppear {
+           Task {
+               do {
+                   print("CommentView appeared, fetching comments")
+                   try await commentViewModel.fetchComments(forPostId: post.id)
+               } catch {
+                   print("Error fetching comments: \(error)")
+               }
+           }
+       }
    }
   
    // creates a back button to return to previous view
@@ -95,8 +109,20 @@ struct CommentView: View {
                        .stroke(Color.gray.opacity(0.3), lineWidth: 4)
                )
            Button("Comment") {
-               // comment backend to be implemented here.
-               newComment = ""
+               guard !newComment.isEmpty else { return }
+               Task {
+                   do {
+                       try await commentViewModel.createComment(
+                           userId: userViewModel.currentUser?.uid ?? "guest",
+                           postId: post.id,
+                           content: newComment
+                       )
+                       newComment = ""
+                       refreshID = UUID()
+                   } catch {
+                       print("Error creating comment: \(error)")
+                   }
+               }
            }
            .padding(.horizontal, 20)
            .padding(.vertical, 8)
@@ -106,4 +132,50 @@ struct CommentView: View {
        }
        .padding(.top, 8)
    }
+  
+   private func commentsList() -> some View {
+       ScrollView {
+           LazyVStack(alignment: .leading, spacing: 12) {
+               ForEach(commentViewModel.comments) { comment in
+                   CommentRowView(comment: comment)
+               }
+           }
+       }
+   }
+}
+
+struct CommentRowView: View {
+    let comment: Comment
+    @StateObject private var userViewModel = UserViewModel()
+    @State private var commenterName = "Loading..."
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(commenterName)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                Spacer()
+                Text(comment.createdAt.formatted())
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            Text(comment.content)
+                .font(.body)
+            .foregroundColor(.black)
+           .padding()
+           .frame(maxWidth: .infinity, alignment: .leading)
+           .background(Color.gray.opacity(0.1))
+           .cornerRadius(10)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .onAppear {
+            Task {
+                if let name = await userViewModel.getUserName(userId: comment.userId) {
+                    commenterName = name
+                }
+            }
+        }
+    }
 }
