@@ -6,6 +6,7 @@ import FirebaseFirestore
 class MockFirestore {
     var users: [String: [String: Any]] = [:]
     var posts: [String: [String: Any]] = [:]
+    var comments: [String: [String: Any]] = [:]
     
     func addUser(uid: String, data: [String: Any]) {
         users[uid] = data
@@ -25,6 +26,14 @@ class MockFirestore {
     
     func getPosts() -> [[String: Any]] {
         return Array(posts.values)
+    }
+    
+    func addComment(id: String, data: [String: Any]) {
+        comments[id] = data
+    }
+    
+    func getComments(postId: String) -> [[String: Any]] {
+        return comments.values.filter { $0["postId"] as? String == postId }
     }
 }
 
@@ -99,19 +108,58 @@ class MockPostViewModel: ObservableObject {
     }
 }
 
+class MockCommentViewModel: ObservableObject {
+    @Published var comments: [Comment] = []
+    private var mockDB = MockFirestore()
+    
+    func createComment(userId: String, postId: String, content: String) async throws {
+        let commentId = UUID().uuidString
+        let createdAt = Date()
+        
+        let commentData: [String: Any] = [
+            "id": commentId,
+            "userId": userId,
+            "postId": postId,
+            "content": content,
+            "createdAt": createdAt
+        ]
+        
+        mockDB.addComment(id: commentId, data: commentData)
+        try await fetchComments(forPostId: postId)
+    }
+    
+    func fetchComments(forPostId postId: String) async throws {
+        let commentData = mockDB.getComments(postId: postId)
+        comments = commentData.compactMap { data in
+            guard let id = data["id"] as? String,
+                  let userId = data["userId"] as? String,
+                  let postId = data["postId"] as? String,
+                  let content = data["content"] as? String,
+                  let createdAt = data["createdAt"] as? Date else {
+                return nil
+            }
+            return Comment(id: id, content: content, userId: userId, postId: postId, createdAt: createdAt)
+        }
+        comments.sort { $0.createdAt > $1.createdAt }
+    }
+}
+
 class COMP_49X_24_25_PhoneArt_intro_project_updatedMockTests: XCTestCase {
     var mockUserViewModel: MockUserViewModel!
     var mockPostViewModel: MockPostViewModel!
+    var mockCommentViewModel: MockCommentViewModel!
     
     override func setUp() {
         super.setUp()
         mockUserViewModel = MockUserViewModel()
         mockPostViewModel = MockPostViewModel()
+        mockCommentViewModel = MockCommentViewModel()
     }
     
     override func tearDown() {
         mockUserViewModel = nil
         mockPostViewModel = nil
+        mockCommentViewModel = nil
         super.tearDown()
     }
     
@@ -167,4 +215,34 @@ class COMP_49X_24_25_PhoneArt_intro_project_updatedMockTests: XCTestCase {
         XCTAssertTrue(mockPostViewModel.posts[0].createdAt > mockPostViewModel.posts[1].createdAt) // Check sorting
     }
     
+    // Comment Management Tests
+    func testCreateComment() async throws {
+        let userId = "testUser123"
+        let postId = "testPost123"
+        let content = "Test comment content"
+        
+        try await mockCommentViewModel.createComment(userId: userId, postId: postId, content: content)
+        
+        XCTAssertEqual(mockCommentViewModel.comments.count, 1)
+        XCTAssertEqual(mockCommentViewModel.comments[0].userId, userId)
+        XCTAssertEqual(mockCommentViewModel.comments[0].postId, postId)
+        XCTAssertEqual(mockCommentViewModel.comments[0].content, content)
+    }
+    
+    func testFetchComments() async throws {
+        let postId = "testPost123"
+        
+        // Create multiple comments
+        try await mockCommentViewModel.createComment(userId: "user1", postId: postId, content: "Comment 1")
+        try await mockCommentViewModel.createComment(userId: "user2", postId: postId, content: "Comment 2")
+        
+        // Clear comments array to simulate fresh fetch
+        mockCommentViewModel.comments = []
+        
+        // Fetch comments
+        try await mockCommentViewModel.fetchComments(forPostId: postId)
+        
+        XCTAssertEqual(mockCommentViewModel.comments.count, 2)
+        XCTAssertTrue(mockCommentViewModel.comments[0].createdAt > mockCommentViewModel.comments[1].createdAt) // Check sorting
+    }
 }
