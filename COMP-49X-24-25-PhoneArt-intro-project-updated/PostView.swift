@@ -19,6 +19,7 @@ struct PostView: View {
   
    var body: some View {
        NavigationStack {
+           // This stack includes the title, the post creation view, and the post list.
            VStack(alignment: .leading, spacing: 16) {
                // Header showing "Discussions" title
                titleView()
@@ -77,6 +78,7 @@ struct PostView: View {
   
    // Creates the view containing the text field for new posts
    private func postCreationView() -> some View {
+       // This stack includes the text field and the button for adding a new post.
        HStack {
            // Text input field
            TextField("Share your thoughts here...", text: $newComment)
@@ -133,10 +135,13 @@ struct PostItemView: View {
    @EnvironmentObject var userViewModel: UserViewModel
    @State private var posterName: String = "Loading..."
    @State private var isShowingComments = false
+   @State private var showingDeleteAlert = false
    let post: Post
   
    var body: some View {
+       // This stack includes the poster's name, the post's creation date, and the post's content.
        VStack(alignment: .leading, spacing: 4) {
+           // This stack includes the poster's name and the post's creation date.
            HStack {
                Text("Posted by \(posterName)")
                    .font(.caption)
@@ -184,6 +189,51 @@ struct PostItemView: View {
   
    // Creates the comments button
    private func commentButton() -> some View {
+       HStack {
+           commentNavigationLink()
+           Spacer()
+           deleteButton()
+       }
+   }
+   
+   // Creates the delete button if user has permission
+   private func deleteButton() -> some View {
+       Group {
+           if userViewModel.currentUser?.isAdmin == true || 
+              userViewModel.currentUser?.uid == post.userId {
+               Button(action: {
+                   showingDeleteAlert = true
+               }) {
+                   // Delete button formatting
+                   Text("Delete")
+                       .padding(.horizontal, 20)
+                       .padding(.vertical, 8)
+                       .background(Color(red: 0.7, green: 0, blue: 0))
+                       .foregroundColor(.white)
+                       .bold()
+                       .cornerRadius(15)
+                       .overlay(
+                           RoundedRectangle(cornerRadius: 15)
+                               .stroke(Color(red: 0.6, green: 0, blue: 0), lineWidth: 4)
+                       )
+                       .padding(.top, 8)
+               }
+               .alert("Delete Post", isPresented: $showingDeleteAlert) {
+                   Button("Cancel", role: .cancel) { }
+                   Button("Delete", role: .destructive) {
+                       // Add delete functionality here
+                       Task {
+                       }
+                   }
+               } message: {
+                   Text("Are you sure you want to delete this post?")
+               }
+           }
+       }
+   }
+   
+   // Creates the navigation link to comments
+   private func commentNavigationLink() -> some View {
        NavigationLink(destination: CommentView(post: post)) {
            Text("Comments")
                .padding(.horizontal, 20)
@@ -199,5 +249,4 @@ struct PostItemView: View {
                .padding(.top, 8)
        }
    }
-  
 }
