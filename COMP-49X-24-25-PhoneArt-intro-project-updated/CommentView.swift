@@ -78,11 +78,11 @@ struct CommentView: View {
        )
        .padding(.horizontal)
        .padding(.vertical, 8)
-       .onAppear {
-           Task {
-               if let name = await userViewModel.getUserName(userId: post.userId) {
-                   posterName = name
-               }
+       .task {
+           if let name = await userViewModel.getUserName(userId: post.userId) {
+               posterName = name
+           } else {
+               posterName = "Unknown User"
            }
        }
    }
@@ -100,6 +100,7 @@ struct CommentView: View {
   
    // provides input field and button for adding new comments
    private func commentInputView() -> some View {
+        // This stack includes the text field and the button for adding a new comment.
        HStack {
            TextField("Add Comment...", text: $newComment)
                .padding(.horizontal, 12)
@@ -138,6 +139,7 @@ struct CommentView: View {
            LazyVStack(alignment: .leading, spacing: 12) {
                ForEach(commentViewModel.comments) { comment in
                    CommentRowView(comment: comment)
+                       .environmentObject(userViewModel)
                }
            }
        }
@@ -146,34 +148,76 @@ struct CommentView: View {
 
 struct CommentRowView: View {
     let comment: Comment
-    @StateObject private var userViewModel = UserViewModel()
+    @EnvironmentObject var userViewModel: UserViewModel
     @State private var commenterName = "Loading..."
+    @State private var showingDeleteAlert = false
     
     var body: some View {
+        // This stack includes the comment header, the comment content, and the delete button if allowed.
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(commenterName)
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                Spacer()
-                Text(comment.createdAt.formatted())
-                    .font(.caption)
-                    .foregroundColor(.gray)
-            }
-            Text(comment.content)
-                .font(.body)
-            .foregroundColor(.black)
-           .padding()
-           .frame(maxWidth: .infinity, alignment: .leading)
-           .background(Color.gray.opacity(0.1))
-           .cornerRadius(10)
+            commentHeader()
+            commentContent()
+            deleteButtonIfAllowed()
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .onAppear {
-            Task {
-                if let name = await userViewModel.getUserName(userId: comment.userId) {
-                    commenterName = name
+        .task {
+            if let name = await userViewModel.getUserName(userId: comment.userId) {
+                commenterName = name
+            } else {
+                commenterName = "Unknown User"
+            }
+        }
+    }
+    
+    private func commentHeader() -> some View {
+        // This stack includes the commenter's name and the comment's creation date.
+        HStack {
+            Text(commenterName)
+                .font(.caption)
+                .foregroundColor(.gray)
+            Spacer()
+            Text(comment.createdAt.formatted())
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+    }
+    
+    private func commentContent() -> some View {
+        Text(comment.content)
+            .font(.body)
+            .foregroundColor(.black)
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(10)
+    }
+    
+    private func deleteButtonIfAllowed() -> some View {
+        Group {
+            if userViewModel.currentUser?.isAdmin == true ||
+               userViewModel.currentUser?.uid == comment.userId {
+                // This stack includes the delete button.
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showingDeleteAlert = true
+                    }) {
+                        HStack {
+                            Text("Delete")
+                                .foregroundColor(.red)
+                        }
+                    }
+                    .alert("Delete Comment", isPresented: $showingDeleteAlert) {
+                        Button("Cancel", role: .cancel) { }
+                        Button("Delete", role: .destructive) {
+                            Task {
+                                // Add delete functionality here
+                            }
+                        }
+                    } message: {
+                        Text("Are you sure you want to delete this comment?")
+                    }
                 }
             }
         }
