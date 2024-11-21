@@ -17,6 +17,7 @@ struct ContentView: View {
 @State private var showingLoginError = false
 @State private var showingLoginSuccess = false
 @State private var isAuthenticated = false
+@State private var isGuest = false
  // Login Page for the application.
 var body: some View {
     NavigationView {
@@ -33,7 +34,7 @@ var body: some View {
         }
         .navigationBarHidden(true)
         .fullScreenCover(isPresented: $isAuthenticated) {
-            PostView(isAuthenticated: $isAuthenticated)
+            PostView(isAuthenticated: $isAuthenticated, isGuest: $isGuest)
                 .navigationViewStyle(StackNavigationViewStyle())
                 .environmentObject(userViewModel)
         }
@@ -80,6 +81,7 @@ private func signInButton() -> some View {
                     try await userViewModel.signIn(email: email, password: password)
                     showingLoginSuccess = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        isGuest = false
                         isAuthenticated = true
                     }
                 } catch {
@@ -102,7 +104,8 @@ private func signInButton() -> some View {
         }
     
         Button(action: {
-            isAuthenticated = true // Enable guest login by directly setting authenticated to true
+            isGuest = true
+            isAuthenticated = true
         }) {
             Text("Sign in as Guest")
                 .foregroundColor(Color(red: 0.0, green: 0.5, blue: 1.0))

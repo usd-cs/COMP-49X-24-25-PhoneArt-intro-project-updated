@@ -7,20 +7,23 @@ import Foundation
 import Firebase
 import FirebaseFirestore
 
-// represents a single comment in the application
+// Represents a single comment in the application
+// Contains all the necessary information for displaying and managing comments
 struct Comment: Codable, Identifiable {
-    let id: String
-    let content: String
-    let userId: String
-    let postId: String
-    let createdAt: Date
+    let id: String        
+    let content: String   
+    let userId: String   
+    let postId: String   
+    let createdAt: Date   
 }
 
-// manages comment data and operations with Firestore
+// Manages comment data and operations with Firestore
+// Handles creating, fetching, and deleting comments
 class CommentViewModel: ObservableObject {
-    @Published var comments: [Comment] = []
-    private let db = Firestore.firestore()
+    @Published var comments: [Comment] = []  
+    private let db = Firestore.firestore()   
     
+    // Creates a new comment and saves it to Firestore
     func createComment(userId: String, postId: String, content: String) async throws {
         do {
             let commentRef = db.collection("comments").document()
@@ -45,20 +48,17 @@ class CommentViewModel: ObservableObject {
             try await fetchComments(forPostId: postId)
             
         } catch {
-            print("Error creating comment: \(error.localizedDescription)")
             throw error
         }
     }
     
+    // Fetches all comments for a specific post
     func fetchComments(forPostId postId: String) async throws {
         do {
-            print("Fetching comments for post: \(postId)") // Debug print
             let querySnapshot = try await db.collection("comments")
                 .whereField("postId", isEqualTo: postId)
                 .order(by: "createdAt", descending: true)
                 .getDocuments()
-            
-            print("Found \(querySnapshot.documents.count) comments") // Debug print
             
             let fetchedComments = querySnapshot.documents.compactMap { document -> Comment? in
                 let data = document.data()
@@ -66,7 +66,6 @@ class CommentViewModel: ObservableObject {
                       let userId = data["userId"] as? String,
                       let postId = data["postId"] as? String,
                       let timestamp = data["createdAt"] as? Timestamp else {
-                    print("Failed to parse comment document: \(document.documentID)") // Debug print
                     return nil
                 }
                 
@@ -80,16 +79,14 @@ class CommentViewModel: ObservableObject {
             }
             
             await MainActor.run {
-                print("Updating comments array with \(fetchedComments.count) comments") // Debug print
                 self.comments = fetchedComments
             }
         } catch {
-            print("Error fetching comments: \(error.localizedDescription)")
             throw error
         }
     }
     
-    
+    // Deletes a specific comment and refreshes the comments list
     func deleteComment(commentId: String, postId: String) async throws {
         do {
             // Delete from Firestore
@@ -98,7 +95,6 @@ class CommentViewModel: ObservableObject {
             // After successful deletion, refresh the comments list
             try await fetchComments(forPostId: postId)
         } catch {
-            print("Error deleting comment: \(error.localizedDescription)")
             throw error
         }
     }

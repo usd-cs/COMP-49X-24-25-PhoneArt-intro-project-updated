@@ -5,15 +5,13 @@
 //  Created by Zachary Letcher on 11/17/24.
 //
 
-
 import Foundation
 import Firebase
 import FirebaseFirestore
 import FirebaseAuth
+import Combine
 
-
-
-
+// Represents a user in the application
 struct User: Codable {
   let email: String
   let name: String
@@ -21,13 +19,14 @@ struct User: Codable {
   let uid: String
 }
 
-
-
-
+// Manages user authentication and data with Firebase
 class UserViewModel: ObservableObject {
-  @Published var currentUser: User?
-  private let db = Firestore.firestore()
-  private var userNameCache: [String: String] = [:]
+  @Published var currentUser: User? 
+  @Published var isGuest: Bool = false 
+  private let db = Firestore.firestore() 
+  private var userNameCache: [String: String] = [:] 
+  
+   // Creates a new user account with the provided credentials
    func createUser(email: String, password: String, name: String, isAdmin: Bool) async throws {
       do {
           let authResult = try await Auth.auth().createUser(withEmail: email, password: password)
@@ -42,37 +41,28 @@ class UserViewModel: ObservableObject {
           throw error
       }
   }
+  
+   // Signs in an existing user with email and password
    func signIn(email: String, password: String) async throws {
       do {
-          print("Attempting sign in for email: \(email)")
           let authResult = try await Auth.auth().signIn(withEmail: email, password: password)
-          print("Auth successful for user: \(authResult.user.uid)")
-        
           try await fetchUser(userId: authResult.user.uid)
-          print("User fetched successfully: \(String(describing: currentUser))")
       } catch let error as NSError {
-          print("Sign in error: \(error.localizedDescription)")
           throw error
       }
   }
+  
+   // Fetches user data from Firestore and updates the currentUser
    private func fetchUser(userId: String) async throws {
       do {
           let documentSnapshot = try await db.collection("users").document(userId).getDocument()
         
           // Check if document exists
           guard documentSnapshot.exists else {
-              print("No user document found for ID: \(userId)")
               throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "User document not found"])
           }
         
-          // Print the raw data for debugging
-          if let data = documentSnapshot.data() {
-              print("Raw Firestore data: \(data)")
-          }
-        
           guard let userData = try? documentSnapshot.data(as: User.self) else {
-              print("Failed to decode user data for ID: \(userId)")
-              print("Document data: \(documentSnapshot.data() ?? [:])")
               throw NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to decode user data"])
           }
         
@@ -80,15 +70,16 @@ class UserViewModel: ObservableObject {
               self.currentUser = userData
           }
       } catch {
-          print("Error fetching user: \(error.localizedDescription)")
           throw error
       }
   }
+  
+   // Gets a user's name from their ID, using cache when possible
    func getUserName(userId: String) async -> String? {
       // Validate userId
       guard !userId.isEmpty else { return nil }
      
-      // Check cache first
+      // Check cache first. Was running into issues with the cache not being updated.
       if let cachedName = userNameCache[userId], !cachedName.isEmpty {
           return cachedName
       }
@@ -107,7 +98,6 @@ class UserViewModel: ObservableObject {
           }
           return name
       } catch {
-          print("Error fetching user name: \(error)")
           return nil
       }
   }

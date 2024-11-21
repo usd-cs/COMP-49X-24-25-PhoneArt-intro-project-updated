@@ -5,15 +5,14 @@
 //  Created by Noah Huang on 11/18/24.
 //
 
-
 import SwiftUI
-
 
 // Main view for displaying and creating posts/discussions
 struct PostView: View {
    // State variables to manage UI
    @State private var newComment = ""
    @Binding var isAuthenticated: Bool
+   @Binding var isGuest: Bool
    @StateObject private var postViewModel = PostViewModel(commentViewModel: CommentViewModel())
    @StateObject private var commentViewModel = CommentViewModel()
    @EnvironmentObject var userViewModel: UserViewModel
@@ -38,7 +37,7 @@ struct PostView: View {
                ScrollView {
                    LazyVStack {
                        ForEach(postViewModel.posts) { post in
-                           PostItemView(post: post)
+                           PostItemView(post: post, isGuest: isGuest)
                                .environmentObject(userViewModel)
                                .environmentObject(commentViewModel)
                                .environmentObject(postViewModel)
@@ -54,6 +53,7 @@ struct PostView: View {
                ToolbarItem(placement: .navigationBarTrailing) {
                    Button("Sign Out") {
                        isAuthenticated = false
+                       isGuest = true
                    }
                    .foregroundColor(.red)
                }
@@ -81,57 +81,46 @@ struct PostView: View {
   
    // Creates the view containing the text field for new posts
    private func postCreationView() -> some View {
-       // This stack includes the text field and the button for adding a new post.
        HStack {
-           // Text input field
-           TextField("Share your thoughts here...", text: $newComment)
+           TextField(isGuest ? "Please login to add posts . . . " : "Share your thoughts here...", text: $newComment)
                .padding(.horizontal, 12)
                .padding(.vertical, 7)
                .overlay(
                    RoundedRectangle(cornerRadius: 15)
                        .stroke(Color.gray.opacity(0.3), lineWidth: 4)
                )
-           postButton()
-       }
-   }
-  
-   // Creates the post button with associated action
-   private func postButton() -> some View {
-       Button("Post") {
-           // Verify user is logged in before posting
-           guard let currentUser = userViewModel.currentUser else {
-               print("Error: No user logged in")
-               return
-           }
-          
-           // Create new post in database
-           Task {
-               do {
-                   try await postViewModel.createPost(
-                       userId: currentUser.uid,
-                       content: newComment
-                   )
-                   newComment = "" // Clear input field after posting
-               } catch {
-                   print("Error creating post: \(error)")
+               .disabled(isGuest)
+               .foregroundColor(isGuest ? Color(red: 0.502, green: 0.502, blue: 0.502) : Color.black)
+           
+           Button("Post") {
+               guard !isGuest, let currentUser = userViewModel.currentUser else { return }
+               
+               Task {
+                   do {
+                       try await postViewModel.createPost(
+                           userId: currentUser.uid,
+                           content: newComment
+                       )
+                       newComment = ""
+                   } catch {
+                       print("Error creating post: \(error)")
+                   }
                }
            }
+           .padding(.horizontal, 20)
+           .padding(.vertical, 8)
+           .background(newComment.isEmpty || isGuest ? Color(red: 0.827, green: 0.827, blue: 0.827) : Color(red: 0.5, green: 0.0, blue: 0.5))
+           .foregroundColor(newComment.isEmpty || isGuest ? Color(red: 0.502, green: 0.502, blue: 0.502) : Color.white)
+           .bold()
+           .cornerRadius(15)
+           .overlay(
+               RoundedRectangle(cornerRadius: 15)
+                   .stroke(newComment.isEmpty || isGuest ? Color(red: 0.502, green: 0.502, blue: 0.502) : Color(red: 0.4, green: 0.0, blue: 0.4), lineWidth: 4)
+           )
+           .disabled(newComment.isEmpty || isGuest)
        }
-       // Styling for post button
-       .padding(.horizontal, 20)
-       .padding(.vertical, 8)
-       .background(Color(red: 0.5, green: 0.0, blue: 0.5))
-       .foregroundColor(.white)
-       .bold()
-       .cornerRadius(15)
-       .overlay(
-           RoundedRectangle(cornerRadius: 15)
-               .stroke(Color(red: 0.4, green: 0.0, blue: 0.4), lineWidth: 4)
-       )
-       .disabled(newComment.isEmpty) // Disable button when input is empty
    }
 }
-
 
 // View component for displaying a single post
 struct PostItemView: View {
@@ -142,6 +131,7 @@ struct PostItemView: View {
    @State private var isShowingComments = false
    @State private var showingDeleteAlert = false
    let post: Post
+   let isGuest: Bool
   
    var body: some View {
        // This stack includes the poster's name, the post's creation date, and the post's content.
@@ -204,8 +194,10 @@ struct PostItemView: View {
    // Creates the delete button if user has permission
    private func deleteButton() -> some View {
        Group {
-           if userViewModel.currentUser?.isAdmin == true || 
-              userViewModel.currentUser?.uid == post.userId {
+           // Check both isGuest states to ensure consistency
+           if !isGuest && !userViewModel.isGuest, 
+              let currentUser = userViewModel.currentUser,
+              (currentUser.isAdmin || currentUser.uid == post.userId) {
                Button(action: {
                    showingDeleteAlert = true
                }) {
@@ -243,7 +235,7 @@ struct PostItemView: View {
    
    // Creates the navigation link to comments
    private func commentNavigationLink() -> some View {
-       NavigationLink(destination: CommentView(post: post)) {
+       NavigationLink(destination: CommentView(post: post, isGuest: isGuest)) {
            Text("Comments")
                .padding(.horizontal, 20)
                .padding(.vertical, 8)
