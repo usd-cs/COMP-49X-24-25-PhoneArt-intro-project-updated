@@ -88,4 +88,19 @@ class CommentViewModel: ObservableObject {
             throw error
         }
     }
+    
+    
+    func deleteComment(commentId: String, postId: String) async throws {
+        do {
+            // Delete from Firestore
+            try await db.collection("comments").document(commentId).delete()
+           
+            // After successful deletion, refresh the comments list
+            try await fetchComments(forPostId: postId)
+        } catch {
+            print("Error deleting comment: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
 }

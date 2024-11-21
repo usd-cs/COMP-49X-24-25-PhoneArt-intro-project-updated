@@ -24,6 +24,12 @@ struct Post: Codable, Identifiable {
 class PostViewModel: ObservableObject {
    @Published var posts: [Post] = [] // array of posts to display
    private let db = Firestore.firestore() // firestore database reference
+   private let commentViewModel: CommentViewModel
+
+    // Add initializer
+   init(commentViewModel: CommentViewModel) {
+       self.commentViewModel = commentViewModel
+   }
   
    // creates a new post in firestore and updates local state
    func createPost(userId: String, content: String) async throws {
@@ -85,6 +91,31 @@ class PostViewModel: ObservableObject {
            throw error
        }
    }
-  
-  
+    
+    / deletes a post from firestore and updates local state
+      func deletePost(postId: String) async throws {
+          do {
+              // First, fetch all comments for this post
+              let querySnapshot = try await db.collection("comments")
+                  .whereField("postId", isEqualTo: postId)
+                  .getDocuments()
+             
+              // Delete all comments
+              for document in querySnapshot.documents {
+                  try await commentViewModel.deleteComment(commentId: document.documentID, postId: postId)
+              }
+             
+              // Delete the post from Firestore
+              try await db.collection("posts").document(postId).delete()
+             
+              // Update local state on main thread
+              await MainActor.run {
+                  posts.removeAll { $0.id == postId }
+              }
+          } catch {
+              print("Error deleting post and its comments: \(error.localizedDescription)")
+              throw error
+          }
+      }
+
 }

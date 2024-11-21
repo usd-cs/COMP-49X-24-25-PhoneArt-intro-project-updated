@@ -149,8 +149,10 @@ struct CommentView: View {
 struct CommentRowView: View {
     let comment: Comment
     @EnvironmentObject var userViewModel: UserViewModel
+    @StateObject private var commentViewModel = CommentViewModel()
     @State private var commenterName = "Loading..."
     @State private var showingDeleteAlert = false
+    @State private var isDeleted = false
     
     var body: some View {
         // This stack includes the comment header, the comment content, and the delete button if allowed.
@@ -169,7 +171,7 @@ struct CommentRowView: View {
             }
         }
     }
-    
+}
     private func commentHeader() -> some View {
         // This stack includes the commenter's name and the comment's creation date.
         HStack {
@@ -195,9 +197,8 @@ struct CommentRowView: View {
     
     private func deleteButtonIfAllowed() -> some View {
         Group {
-            if userViewModel.currentUser?.isAdmin == true ||
-               userViewModel.currentUser?.uid == comment.userId {
-                // This stack includes the delete button.
+            if !isDeleted && (userViewModel.currentUser?.isAdmin == true ||
+                userViewModel.currentUser?.uid == comment.userId) {
                 HStack {
                     Spacer()
                     Button(action: {
@@ -212,7 +213,19 @@ struct CommentRowView: View {
                         Button("Cancel", role: .cancel) { }
                         Button("Delete", role: .destructive) {
                             Task {
-                                // Add delete functionality here
+                                do {
+                                    try await commentViewModel.deleteComment(
+                                    commentId: comment.id,
+                                    postId: comment.postId
+                                )
+                                    isDeleted = true
+                                    NotificationCenter.default.post(
+                                        name: Notification.Name("RefreshComments"),
+                                        object: nil
+                                    )
+                                } catch {
+                                    print("Error deleting comment: \(error)")
+                                }
                             }
                         }
                     } message: {

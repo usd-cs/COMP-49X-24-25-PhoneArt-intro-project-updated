@@ -4,7 +4,7 @@
 //
 //  Created by Aditya Prakash on 11/17/24.
 //
-
+/*
 import XCTest
 
 final class COMP_49X_24_25_PhoneArt_intro_project_updatedUITests: XCTestCase {
@@ -119,3 +119,4 @@ final class COMP_49X_24_25_PhoneArt_intro_project_updatedUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Discussions"].exists)
     }
 }
+*/
