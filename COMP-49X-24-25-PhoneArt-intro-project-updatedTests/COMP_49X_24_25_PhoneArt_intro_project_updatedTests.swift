@@ -85,6 +85,11 @@ class MockPostViewModel: ObservableObject {
             )
         }
     }
+    
+    func deletePost(postId: String) async throws {
+        mockDB.posts.removeValue(forKey: postId)
+        posts.removeAll(where: { $0.id == postId })
+    }
 }
 
 // Mock Comment View Model
@@ -119,6 +124,11 @@ class MockCommentViewModel: ObservableObject {
                     createdAt: Date()
                 )
             }
+    }
+    
+    func deleteComment(commentId: String, postId: String) async throws {
+        mockDB.comments.removeValue(forKey: commentId)
+        comments.removeAll(where: { $0.id == commentId })
     }
 }
 
@@ -235,5 +245,52 @@ class COMP_49X_24_25_PhoneArt_intro_project_updatedTests: XCTestCase {
         
         let userName = await userViewModel.getUserName(userId: userId)
         XCTAssertEqual(userName, "Test User")
+    }
+    
+    func testDeletePost() async throws {
+        // Set up test admin user
+        try await userViewModel.createUser(email: "test@example.com", password: "test123", name: "Test User", isAdmin: true)
+        let userId = userViewModel.currentUser!.uid
+        
+        // Make a new post and fetch it
+        try await postViewModel.createPost(userId: userId, content: "Test post to delete")
+        try await postViewModel.fetchPosts()
+        
+        // Should have 1 post now
+        XCTAssertEqual(postViewModel.posts.count, 1)
+        let postId = postViewModel.posts.first!.id
+        
+        // Try deleting the post
+        try await postViewModel.deletePost(postId: postId)
+        
+        // Post should be gone from both posts list and DB
+        XCTAssertTrue(postViewModel.posts.isEmpty)
+        XCTAssertNil(mockDB.posts[postId])
+    }
+    
+    func testDeleteComment() async throws {
+        // Need an admin user first
+        try await userViewModel.createUser(email: "test@example.com", password: "test123", name: "Test User", isAdmin: true)
+        let userId = userViewModel.currentUser!.uid
+        
+        // Need a post to comment on
+        try await postViewModel.createPost(userId: userId, content: "Test post")
+        try await postViewModel.fetchPosts()
+        let postId = postViewModel.posts.first!.id
+        
+        // Add a test comment
+        try await commentViewModel.createComment(userId: userId, postId: postId, content: "Test comment to delete")
+        try await commentViewModel.fetchComments(forPostId: postId)
+        
+        // Should have 1 comment
+        XCTAssertEqual(commentViewModel.comments.count, 1)
+        let commentId = commentViewModel.comments.first!.id
+        
+        // Remove the comment
+        try await commentViewModel.deleteComment(commentId: commentId, postId: postId)
+        
+        // Comment should be gone from both comments list and DB
+        XCTAssertTrue(commentViewModel.comments.isEmpty)
+        XCTAssertNil(mockDB.comments[commentId])
     }
 }

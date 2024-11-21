@@ -5,13 +5,11 @@
 //  Created by Emmett de Bruin on 11/18/24.
 //
 
-
 import Foundation
 import Firebase
 import FirebaseFirestore
 
-
-// represents a single post in the application
+// Basic post model - just stores the essential info we need
 struct Post: Codable, Identifiable {
    let id: String
    let userId: String
@@ -19,19 +17,17 @@ struct Post: Codable, Identifiable {
    let createdAt: Date
 }
 
-
-// manages post data and operations with Firestore
+// Handles all the post-related Firebase operations
 class PostViewModel: ObservableObject {
-   @Published var posts: [Post] = [] // array of posts to display
-   private let db = Firestore.firestore() // firestore database reference
-   private let commentViewModel: CommentViewModel
+   @Published var posts: [Post] = [] // Keeps track of posts in memory
+   private let db = Firestore.firestore() 
+   private let commentViewModel: CommentViewModel // Need this to clean up comments when deleting posts
 
-    // Add initializer
    init(commentViewModel: CommentViewModel) {
        self.commentViewModel = commentViewModel
    }
   
-   // creates a new post in firestore and updates local state
+   // Creates a new post and adds it to both Firestore and local state
    func createPost(userId: String, content: String) async throws {
        do {
            let postRef = db.collection("posts").document()
@@ -51,16 +47,14 @@ class PostViewModel: ObservableObject {
           
            await MainActor.run {
                posts.append(post)
-               // sort posts by creation date, newest first
-               posts.sort { $0.createdAt > $1.createdAt }
+               posts.sort { $0.createdAt > $1.createdAt } // Keep newest posts at top
            }
        } catch {
-           print("Error creating post: \(error.localizedDescription)")
            throw error
        }
    }
   
-   // fetches all posts from firestore and updates local state
+   // Gets all posts from Firestore, sorted newest first
    func fetchPosts() async throws {
        do {
            let querySnapshot = try await db.collection("posts")
@@ -69,6 +63,7 @@ class PostViewModel: ObservableObject {
           
            let fetchedPosts = querySnapshot.documents.compactMap { document -> Post? in
                let data = document.data()
+               // Skip any malformed posts in the DB
                guard let userId = data["userId"] as? String,
                      let content = data["content"] as? String,
                      let timestamp = data["createdAt"] as? Timestamp else {
@@ -87,35 +82,29 @@ class PostViewModel: ObservableObject {
                self.posts = fetchedPosts
            }
        } catch {
-           print("Error fetching posts: \(error.localizedDescription)")
            throw error
        }
    }
     
-    / deletes a post from firestore and updates local state
-      func deletePost(postId: String) async throws {
-          do {
-              // First, fetch all comments for this post
-              let querySnapshot = try await db.collection("comments")
-                  .whereField("postId", isEqualTo: postId)
-                  .getDocuments()
+   // Deletes a post and all its comments
+   func deletePost(postId: String) async throws {
+       do {
+           // First find and delete all comments on this post
+           let querySnapshot = try await db.collection("comments")
+               .whereField("postId", isEqualTo: postId)
+               .getDocuments()
              
-              // Delete all comments
-              for document in querySnapshot.documents {
-                  try await commentViewModel.deleteComment(commentId: document.documentID, postId: postId)
-              }
+           for document in querySnapshot.documents {
+               try await commentViewModel.deleteComment(commentId: document.documentID, postId: postId)
+           }
              
-              // Delete the post from Firestore
-              try await db.collection("posts").document(postId).delete()
+           try await db.collection("posts").document(postId).delete()
              
-              // Update local state on main thread
-              await MainActor.run {
-                  posts.removeAll { $0.id == postId }
-              }
-          } catch {
-              print("Error deleting post and its comments: \(error.localizedDescription)")
-              throw error
-          }
-      }
-
+           await MainActor.run {
+               posts.removeAll { $0.id == postId }
+           }
+       } catch {
+           throw error
+       }
+   }
 }
