@@ -14,7 +14,8 @@ struct PostView: View {
    // State variables to manage UI
    @State private var newComment = ""
    @Binding var isAuthenticated: Bool
-   @StateObject private var postViewModel = PostViewModel()
+   @StateObject private var postViewModel = PostViewModel(commentViewModel: CommentViewModel())
+   @StateObject private var commentViewModel = CommentViewModel()
    @EnvironmentObject var userViewModel: UserViewModel
   
    var body: some View {
@@ -39,6 +40,8 @@ struct PostView: View {
                        ForEach(postViewModel.posts) { post in
                            PostItemView(post: post)
                                .environmentObject(userViewModel)
+                               .environmentObject(commentViewModel)
+                               .environmentObject(postViewModel)
                        }
                    }
                }
@@ -133,6 +136,8 @@ struct PostView: View {
 // View component for displaying a single post
 struct PostItemView: View {
    @EnvironmentObject var userViewModel: UserViewModel
+   @EnvironmentObject var commentViewModel: CommentViewModel
+   @EnvironmentObject var postViewModel: PostViewModel
    @State private var posterName: String = "Loading..."
    @State private var isShowingComments = false
    @State private var showingDeleteAlert = false
@@ -221,10 +226,14 @@ struct PostItemView: View {
                .alert("Delete Post", isPresented: $showingDeleteAlert) {
                    Button("Cancel", role: .cancel) { }
                    Button("Delete", role: .destructive) {
-                       // Add delete functionality here
                        Task {
+                           do {
+                                try await postViewModel.deletePost(postId: post.id)
+                           } catch {
+                                print("Error deleting post: \(error)")
+                           }
                        }
-                   }
+                    }
                } message: {
                    Text("Are you sure you want to delete this post?")
                }
